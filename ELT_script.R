@@ -19,6 +19,7 @@ q_filtered <- q_clean %>%
   filter(n() > 364) %>%
   ungroup()
 
+#checking that all water years have full year records
 station_year_counts <- q_filtered %>%
   group_by(STATION_NUMBER, WaterYear) %>%
   summarize(Count = n())
@@ -68,15 +69,72 @@ flow_files <- list.files(path = folder_path, pattern = "\\.csv$", full.names = T
 print(flow_files)
 
 ######Creating data for Total Phosphorus
+# Load necessary libraries
+library(dplyr)
+library(purrr)
 
+getwd()
+setwd("/Users/alex.neumann/Downloads")
 wq<-read.csv('/Users/alex.neumann/Downloads/TP_LE.csv')
 wq$Date2 <- as.Date(wq$DATE, format = "%d/%m/%Y")
-wq <- wq %>%
-  rename("TP (mg/L)" = 'TP..mg.L.')
+#wq <- wq %>%
+#  rename("TP (mg/L)" = 'TP..mg.L.')
 
+wq <- wq %>%
+  rename(TP = 'TP..mg.L.')
+
+wq <- wq %>%
+  rename(Date_ = 'DATE')
+
+wq_clean <- aggregate(x=wq$TP, by=list(wq$STATION,wq$Date_),FUN=mean)
+
+wq_clean <- wq_clean %>%
+  rename(Station= Group.1)
+
+wq_clean <- wq_clean %>%
+  rename(DATE= Group.2)
+
+wq_clean <- wq_clean %>%
+  rename('TP (mg/L)'= x)
+
+wq<-wq_clean
+wq <- wq %>%
+  rename(STATION= Station)
+wq$Date2 <- as.Date(wq$DATE, format = "%d/%m/%Y")
 setwd("/Users/alex.neumann/Downloads/wq_test")
 # Iterate over each unique station
 unique_stations <- unique(wq$STATION)
+
+# Using walk to iterate without expecting a return
+# walk(unique_stations, function(station) {
+#   # Filter for the current station
+#   station_data <- wq %>%
+#     filter(station == STATION) %>%
+#     arrange(Date2) %>%
+#     select(DATE, 'TP (mg/L)')
+
+
+# walk(unique_stations, function(station) {
+#   # Filter for the current station
+#   station_data <- wq %>%
+#     filter(station == STATION) %>%
+#     group_by(Date2) %>%
+#     summarise(avgTP = mean(TP), na.rm=TRUE) %>%
+#     ungroup() %>%
+#     arrange(Date2) %>%
+#     select(Date_, TP)
+#   
+
+#   
+# walk(unique_stations, function(station) {
+#   # Filter for the current station
+#   station_data <- wq %>%
+#     filter(station == STATION) %>%
+#     group_by(Date2) %>%
+#     summarise(avgTP = mean(TP), na.rm=TRUE) %>%
+#     ungroup() %>%
+#     arrange(Date2) %>%
+#     select(Date_, TP)
 
 # Using walk to iterate without expecting a return
 walk(unique_stations, function(station) {
@@ -85,7 +143,7 @@ walk(unique_stations, function(station) {
     filter(station == STATION) %>%
     arrange(Date2) %>%
     select(DATE, 'TP (mg/L)')
-  
+
   # Construct the filename
   file_name <- paste0("wq_",station, ".csv")
   
